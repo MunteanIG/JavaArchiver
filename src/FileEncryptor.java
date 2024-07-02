@@ -1,8 +1,6 @@
 import javax.crypto.*;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import javax.crypto.spec.*;
+import java.io.*;
 import java.security.GeneralSecurityException;
 
 public class FileEncryptor {

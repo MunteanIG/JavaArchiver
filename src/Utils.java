@@ -1,12 +1,7 @@
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
-import javax.crypto.spec.IvParameterSpec;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
+import javax.crypto.*;
+import javax.crypto.spec.*;
+import java.security.*;
+import java.security.spec.*;
 import java.util.Arrays;
 
 public class Utils {
