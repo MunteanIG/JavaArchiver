@@ -1,7 +1,7 @@
 import java.io.*;
 import java.nio.file.Files;
 import java.security.GeneralSecurityException;
-import java.util.*;
+import java.util.List;
 import java.util.zip.*;
 
 public class FileCompressor {
@@ -9,6 +9,7 @@ public class FileCompressor {
     public static byte[] createArchive(List<File> selectedFiles, String compression, String password, String encryption) throws IOException, GeneralSecurityException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
+        // Step 1: Compress the files
         ByteArrayOutputStream compressedBaos = new ByteArrayOutputStream();
         if ("ZIP".equals(compression)) {
             try (ZipOutputStream zipOut = new ZipOutputStream(compressedBaos)) {
@@ -28,6 +29,7 @@ public class FileCompressor {
                 }
             }
         } else {
+            // No compression
             for (File file : selectedFiles) {
                 byte[] fileContent = Files.readAllBytes(file.toPath());
                 compressedBaos.write(fileContent);
@@ -35,53 +37,60 @@ public class FileCompressor {
         }
         byte[] compressedData = compressedBaos.toByteArray();
 
+        // Step 2: Encrypt the compressed data if encryption is selected
         if (!"None".equals(encryption)) {
-            baos.write(FileEncryptor.encryptData(encryption, password, compressedData));
+            byte[] encryptedData = FileEncryptor.encryptData(encryption, password, compressedData);
+            baos.write(encryptedData);
         } else {
+            // No encryption
             baos.write(compressedData);
         }
 
         return baos.toByteArray();
     }
 
-    public static Map<String, byte[]> decompressFile(File file, String encryption, String password) throws IOException, GeneralSecurityException {
+    public static byte[] decompressFile(File file, String encryption, String password) throws IOException, GeneralSecurityException {
         byte[] compressedContent = Files.readAllBytes(file.toPath());
 
+        // Decrypt the content if encryption is selected
         byte[] decryptedContent = compressedContent;
         if (!"None".equals(encryption)) {
             decryptedContent = FileEncryptor.decryptData(encryption, password, compressedContent);
         }
 
+        // Decompress the file and extract the original file name
         String fileName = file.getName();
-        Map<String, byte[]> decompressedFiles = new HashMap<>();
+        byte[] decompressedFile = null;
         if (fileName.endsWith(".zip")) {
-            decompressedFiles = decompressZipFile(decryptedContent);
+            // Decompress ZIP file
+            decompressedFile = decompressZipFile(decryptedContent);
         } else if (fileName.endsWith(".gz")) {
-            decompressedFiles.put(fileName.replace(".gz", ""), decompressGzipFile(decryptedContent));
+            // Decompress GZIP file
+            decompressedFile = decompressGzipFile(decryptedContent);
         } else {
-            decompressedFiles.put(fileName, decryptedContent);
+            // No compression
+            decompressedFile = decryptedContent;
         }
 
-        return decompressedFiles;
+        return decompressedFile;
     }
 
-    private static Map<String, byte[]> decompressZipFile(byte[] compressedData) throws IOException {
-        Map<String, byte[]> decompressedFiles = new HashMap<>();
+    private static byte[] decompressZipFile(byte[] compressedData) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ZipInputStream zipIn = new ZipInputStream(new ByteArrayInputStream(compressedData))) {
             ZipEntry entry;
             while ((entry = zipIn.getNextEntry()) != null) {
                 if (!entry.isDirectory()) {
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     byte[] buffer = new byte[1024];
                     int bytesRead;
                     while ((bytesRead = zipIn.read(buffer)) != -1) {
                         baos.write(buffer, 0, bytesRead);
                     }
-                    decompressedFiles.put(entry.getName(), baos.toByteArray());
+                    break; // Only decompress the first file in ZIP
                 }
             }
         }
-        return decompressedFiles;
+        return baos.toByteArray();
     }
 
     private static byte[] decompressGzipFile(byte[] compressedData) throws IOException {
